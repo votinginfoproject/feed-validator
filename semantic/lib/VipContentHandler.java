@@ -18,7 +18,7 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
         private String content;
         
         private static String topTypes = "|street_segment|precinct|precinct_split|contest|ballot|candidate|electoral_district|" + 
-        "polling_location|early_vote_site|election_administration" + "|locality|state|" + "source|election|" + "ballot|candidate|referendum|ballot_response|custom_ballot|";
+        "polling_location|early_vote_site|election_administration|election_official" + "|locality|state|" + "source|election|" + "ballot|candidate|referendum|ballot_response|custom_ballot|";
         private static String allTypes = VipContentHandler.topTypes + "precinct_id|precinct_split_id|electoral_district_id|" + 
                 "polling_location_id|early_vote_site_id|election_administration_id|eo_id|ovc_id|" + "locality_id|state_id|" + "feed_contact_id|" +
                 "ballot_id|candidate_id|referendum_id|ballot_response_id|custom_ballot_id|";
@@ -31,37 +31,35 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
 
         //localName is the important one
         public void startElement(String namespaceURI, String localName, String rawName, Attributes atts) throws SAXException {
-                if (sv.getErrorCount() < SemVal.maxErrors) {
-                        String rawNameChk = "|" + rawName + "|";
-                        if (VipContentHandler.addressTypes.contains(rawNameChk)) {
-                                addressMode=true;
-                        }
-                        if (!addressMode) {
-                                if (VipContentHandler.allTypes.contains(rawNameChk)) {
-                                        if (VipContentHandler.topTypes.contains(rawNameChk)) {
-                                                topLevelType = rawName;
-                                                //System.out.println("Top level is: " + topLevelType);
-                
-                                                String attrName = atts.getQName(0);
-                                                if (attrName == "id") {
-                                                        Long idLong = new Long(atts.getValue(0));
-                                                        topLevelId = idLong;
-                                                        //System.out.println("Adding ID " + idLong + " of type " + topLevelType);
-                                                        sv.addIdType(idLong, rawName, locator.getLineNumber());
-                                                } else {
-                                                        sv.addError("First attribute for " + rawName + " at line " + locator.getLineNumber() + " is " + attrName);
-                                                }
-                                        } else { //connector
-                                                lowLevelType = rawName;
+                String rawNameChk = "|" + rawName + "|";
+                if (VipContentHandler.addressTypes.contains(rawNameChk)) {
+                        addressMode=true;
+                }
+                if (!addressMode) {
+                        if (VipContentHandler.allTypes.contains(rawNameChk)) {
+                                if (VipContentHandler.topTypes.contains(rawNameChk)) {
+                                        topLevelType = rawName;
+                                        //System.out.println("Top level is: " + topLevelType);
+        
+                                        String attrName = atts.getQName(0);
+                                        if (attrName == "id") {
+                                                Long idLong = new Long(atts.getValue(0));
+                                                topLevelId = idLong;
+                                                //System.out.println("Adding ID " + idLong + " of type " + topLevelType);
+                                                sv.addIdType(idLong, rawName, locator.getLineNumber());
+                                        } else {
+                                                sv.addError("First attribute for " + rawName + " at line " + locator.getLineNumber() + " is " + attrName);
                                         }
+                                } else { //connector
+                                        lowLevelType = rawName;
                                 }
                         }
-                        content="";
-               }
+                }
+                content="";
         }
 
         public void characters(char[] ch, int start, int end) throws SAXException {
-                if (lowLevelType != null && sv.getErrorCount() < SemVal.maxErrors) {
+                if (lowLevelType != null) {
                         content += new String(ch, start, end);
                 } else {
                         content="";
@@ -69,25 +67,20 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
         }
 
         public void endElement(String namespaceURI, String localName, String rawName) throws SAXException {
-                if (sv.getErrorCount() < SemVal.maxErrors) {
-                        String rawNameChk = "|" + rawName + "|";
-                        //System.out.println(namespaceURI + " " + rawName + " " + rawName);
-                        if (!addressMode) {
-                                if (VipContentHandler.allTypes.contains(rawNameChk)) {
-                                        if (VipContentHandler.topTypes.contains(rawNameChk)) {
-                                                topLevelType = null;
-                                                //System.out.println("Top level is null");
-                                                topLevelId = null;
+                String rawNameChk = "|" + rawName + "|";
+                //System.out.println(namespaceURI + " " + rawName + " " + rawName);
+                if (!addressMode) {
+                        if (VipContentHandler.allTypes.contains(rawNameChk)) {
+                                if (VipContentHandler.topTypes.contains(rawNameChk)) {
+                                        topLevelType = null;
+                                        //System.out.println("Top level is null");
+                                        topLevelId = null;
+                                } else {
+                                        if (content==null || content.equals("")) {
+                                                sv.addError("Content of linking element " + lowLevelType + " at line " + locator.getLineNumber() +  " is blank.");
                                         } else {
-                                                if (content==null || content.equals("")) {
-                                                        sv.addError("Content of linking element " + lowLevelType + " at line " + locator.getLineNumber() +  "is blank.");
-                                                }
                                                 try {
                                                         Long toId = Long.parseLong(content);
-                                                        //if (s.equals("440001405") || toId.equals(1405)) {
-                                                        if (topLevelId.equals(Long.decode("88000136340"))) {
-                                                                System.out.println("Gotcha: "+ topLevelId + " " + content + " " + toId);
-                                                        }
                                                         //System.out.println("Linking element " + topLevelType + ":" + lowLevelType + " at line " + locator.getLineNumber());
                                                         sv.addLink(topLevelType, topLevelId, locator.getLineNumber(), lowLevelType, toId);
                                                 } catch (Exception e) {
@@ -97,9 +90,9 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                         }
                                 }
                         }
-                        if (VipContentHandler.addressTypes.contains(rawNameChk)) {
-                                addressMode=false;
-                        }
+                }
+                if (VipContentHandler.addressTypes.contains(rawNameChk)) {
+                        addressMode=false;
                 }
         }
 

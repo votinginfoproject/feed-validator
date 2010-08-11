@@ -21,7 +21,7 @@
       <all-permissions/>
   </security>
   <resources>
-    <j2se version="1.6+" java-vm-args="-esa -Xnoclassgc"/>
+    <j2se version="1.6+" java-vm-args="-esa -Xnoclassgc" max-heap-size="1024m"/>
     <jar href="lib/VipSemChecker.jar"/>
     <jar href="lib/xercesImpl.jar"/>
   </resources>
