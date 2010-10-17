@@ -27,13 +27,14 @@ public class VipSemChecker {
                 Label label2 = new Label("XSD File");
                 Label label3 = new Label("Result:");
                 Label label4 = new Label("(Full file path)");
+                Label label5 = new Label("Last update: September 1, 2010");
                 tf1 = new TextField(cols);
                 tf2 = new TextField(cols);
                 //tf2.setEditable(false);
                 tf2.setEditable(true);
                 Button b1 = new Button("Open File");
                 c1 = new Choice();
-                //c1.add("v2.2");
+                c1.add("v2.2");
                 c1.add("v2.1");
                 c1.add("v2.0");
                 //c1.add("v1.5");
@@ -46,6 +47,7 @@ public class VipSemChecker {
                 Spring xPad = Spring.constant(xPadInt);
                 int yPadInt = 5;
                 Spring yPad = Spring.constant(yPadInt);
+                
 
 
 
@@ -100,6 +102,8 @@ public class VipSemChecker {
                 layout.putConstraint(SpringLayout.NORTH, ta1, yPadInt,
                         SpringLayout.SOUTH, b3);
 
+                layout.putConstraint(SpringLayout.NORTH, label5, yPadInt,
+                        SpringLayout.SOUTH, ta1);
 
                 contentPane.add(label1);
                 contentPane.add(tf1);
@@ -111,6 +115,7 @@ public class VipSemChecker {
                 contentPane.add(label3);
                 contentPane.add(ta1);
                 contentPane.add(b3);
+                contentPane.add(label5);
 
 
                 Spring maxHeightSpring = Spring.constant(0);
@@ -127,7 +132,7 @@ public class VipSemChecker {
                 SpringLayout.Constraints pCons =
                         layout.getConstraints(contentPane);
                 pCons.setConstraint("East", Spring.constant(650));
-                pCons.setConstraint("South", Spring.constant(500));
+                pCons.setConstraint("South", Spring.constant(510));
 
 
                 frame.pack();
@@ -188,7 +193,7 @@ public class VipSemChecker {
         private static void updateXSDTF() {
                 tf2.setText(
                         "http://election-info-standard.googlecode.com/files/vip_spec_" +
-                        c1.getSelectedItem() + ".xsd");
+                        c1.getSelectedItem() + (c1.getSelectedItem().equals("v2.2") ? "a" : "") + ".xsd");
         }
 
         private static void validate() {
@@ -243,5 +248,3 @@ public class VipSemChecker {
 //D:\google\spec\sample feed for v2.0.xml.txt
 //D:\google\state data\NC\vipFeed-37-2008-10-05T18-07-18.xml
 //file://localhost/D:/google/spec/vip_spec_v2.0.xsd
-
-
