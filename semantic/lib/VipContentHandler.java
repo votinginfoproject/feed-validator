@@ -59,6 +59,8 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                 }
                         }
                         if (VipContentHandler.numCheckTypes.contains(rawNameChk)) getContent=true;
+                } else {
+                        getContent=true;
                 }
                 content="";
         }
@@ -108,24 +110,38 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                 try {
                                         long endnum = Long.parseLong(content);
                                         if (endnum==0) {
-                                                sv.addError("Your " + lowLevelType + " at line " + locator.getLineNumber() + "is 0, which doesn't make sense. To signify the entire street is in this segment, use a very large number like 99999.");
+                                                sv.addError("Your " + rawName + " at line " + locator.getLineNumber() + " is 0, which doesn't make sense. To signify the entire street is in this segment, use a very large number like 99999.");
                                         }
                                         if (startnumHold > -1 && endnum<startnumHold) {
-                                                sv.addError("Your " + lowLevelType + " at line " + locator.getLineNumber() + " is less than the corresponding start_house_number of " + startnumHold + ".");
+                                                sv.addError("Your " + rawName + " at line " + locator.getLineNumber() + " is less than the corresponding start_house_number of " + startnumHold + ".");
                                         }
                                 } catch (Exception e) {
-                                        sv.addError("Content of " + lowLevelType + " at line " + locator.getLineNumber() +  " is not a (parseable) number: " + content);
+                                        sv.addError("Content of " + rawName + " at line " + locator.getLineNumber() +  " is not a (parseable) number: " + content);
                                 }
                         }
                         if (rawName.equals("start_house_number")) {
                                 try {
                                         startnumHold = Long.parseLong(content);
                                 } catch (Exception e) {
-                                        sv.addError("Content of " + lowLevelType + " at line " + locator.getLineNumber() +  " is not a (parseable) number: " + content);
+                                        sv.addError("Content of " + rawName + " at line " + locator.getLineNumber() +  " is not a (parseable) number: " + content);
                                 }
                         }
                         getContent=false;
                 }
+                if (rawName.equals("state") && addressMode) {
+                        if(content.length() != 2) {
+                                sv.addWarning("Your " + topLevelType +" state at line " + locator.getLineNumber() + " is not two characters long.");
+                        }
+                }
+                if (topLevelType=="polling_location" & (addressMode || rawName.equals("location_name"))) {
+                        if (rawName.equals("city") || rawName.equals("line1") || rawName.equals("location_name") || rawName.equals("zip")) {
+                                if (content.length()==0) {
+                                        sv.addWarning("Your polling location's " + rawName + " at line " + locator.getLineNumber() + " is blank.");
+                                        sv.addBlank(rawName);
+                                }
+                        }
+                }
+                
                 if (VipContentHandler.addressTypes.contains(rawNameChk)) {
                         addressMode=false;
                 }
