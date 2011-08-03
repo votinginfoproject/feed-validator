@@ -137,7 +137,9 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                                                                 sv.addGeoWarning("No geocode results for address (line " + locator.getLineNumber() + "): " + addr);
                                                                         } else {
                                                                                 GeocoderResult geocoderResult = (GeocoderResult)geocoderResults.get(0);
-                                                                                if(geocoderResult.isPartialMatch()) {
+                                                                                GeocoderGeometry geocoderGeometry = geocoderResult.getGeometry();
+                                                                                GeocoderLocationType geocoderLocationType = geocoderGeometry.getLocationType();
+                                                                                if(geocoderLocationType.value().equals("APPROXIMATE")) {
                                                                                         sv.addGeoWarning("Incomplete geocode for (line " + locator.getLineNumber() + "): " + addr);
                                                                                 } else {
                                                                                         geocodeSuccess++;
