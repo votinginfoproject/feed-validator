@@ -3,6 +3,11 @@ import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
+import com.google.code.geocoder.*;
+import com.google.code.geocoder.model.*;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Random;
 
 //from: http://java.sun.com/developer/Books/xmljava/ch03.pdf
 class VipContentHandler implements org.xml.sax.ContentHandler {
@@ -18,7 +23,16 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
         private String content;
         private long startnumHold;
         private boolean getContent=false;
-        
+        private final Random randomGen = new Random();
+
+        //for geocoding
+        final Geocoder geocoder = new Geocoder();
+        final static int geocodeMax=20;
+        private int geocodeCount=0;
+        private int geocodeSuccess=0;
+        private boolean geocodeFailure=false;
+        private SegmentAddress curSegmentAddress=null;
+                
         private static String topTypes = "|street_segment|precinct|precinct_split|contest|ballot|candidate|electoral_district|" + "ballot_line_result|contest_result|" +
         "polling_location|early_vote_site|election_administration|election_official" + "|locality|state|" + "source|election|" + "ballot|candidate|referendum|ballot_response|custom_ballot|";
         private static String allTypes = VipContentHandler.topTypes + "precinct_id|precinct_split_id|electoral_district_id|" + 
@@ -26,7 +40,7 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                 "ballot_id|candidate_id|referendum_id|ballot_response_id|custom_ballot_id|jurisdiction_id|contest_id|";
         private static String numCheckTypes="|start_house_number|end_house_number|";
         private static String addressTypes = "|physical_address|mailing_address|address|non_house_address|filed_mailing_address|";
-                
+              
         public VipContentHandler(SemVal sv) {
                 super();
                 this.sv = sv;
@@ -57,6 +71,12 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                         } else { //no attributes
                                                 sv.addError("No attributes for " + rawName + " at line " + locator.getLineNumber() + "; you need an id attribute here.");
                                         }
+                                        
+                                        //geocoding -- start a new address
+                                        if (topLevelType.equals("street_segment")) {
+                                                curSegmentAddress=new SegmentAddress();
+                                        }
+                                        
                                 } else { //connector
                                         lowLevelType = rawName;
                                         getContent=true;
@@ -93,6 +113,43 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                         topLevelId = null;
 
                                         if (rawName.equals("street_segment")) {
+                                                
+                                                if (curSegmentAddress!=null) {
+                                                        if (!geocodeFailure && (geocodeCount<geocodeMax) && (randomGen.nextDouble()<0.05) && !(curSegmentAddress.streetName.equals("*"))) {
+                                                                //geocode test
+                                                                String addr = curSegmentAddress.getFullAddress();
+                                                                GeocoderRequest geocoderRequest = null;
+                                                                GeocodeResponse geocoderResponse = null;
+                                                                try {
+                                                                        geocoderRequest = new GeocoderRequestBuilder().setAddress(addr).setLanguage("en").getGeocoderRequest();
+                                                                        geocoderResponse = geocoder.geocode(geocoderRequest);
+                                                                } catch (Exception e) {
+                                                                        if (geocodeFailure==false) {
+                                                                                sv.addWarning("Geocoding failed, check Internet connection.");
+                                                                                geocodeFailure=true;
+                                                                        }
+                                                                }
+                                                                if (geocoderResponse!=null) {
+                                                                        List<GeocoderResult> geocoderResults = geocoderResponse.getResults();
+                                                                        
+                                                                        //System.out.println("Addr: " + addr);
+                                                                        if (geocoderResults.isEmpty()) {
+                                                                                sv.addWarning("No geocode results for address (line " + locator.getLineNumber() + "): " + addr);
+                                                                        } else {
+                                                                                GeocoderResult geocoderResult = (GeocoderResult)geocoderResults.get(0);
+                                                                                if(geocoderResult.isPartialMatch()) {
+                                                                                        sv.addWarning("Incomplete geocode for (line " + locator.getLineNumber() + "): " + addr);
+                                                                                } else {
+                                                                                        geocodeSuccess++;
+                                                                                }
+                                                                        }
+                                                                }
+                                                                geocodeCount++;
+                                                        }
+                                                        curSegmentAddress=null;
+                                                }
+                                                
+                                                //erase start number
                                                 startnumHold=-1;
                                         }
 
@@ -113,6 +170,26 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                         }
                                 }
                         }
+                } else if (curSegmentAddress!=null) {
+                        if (rawName.equals("street_direction")) {
+                                curSegmentAddress.streetDirection=content;
+                        } else if (rawName.equals("house_number_prefix")) {
+                                curSegmentAddress.houseNumberPrefix=content;
+                        } else if (rawName.equals("house_number_suffix")) {
+                                curSegmentAddress.houseNumberSuffix=content;
+                        } else if (rawName.equals("street_name")) {
+                                curSegmentAddress.streetName=content;
+                        } else if (rawName.equals("street_suffix")) {
+                                curSegmentAddress.streetSuffix=content;
+                        } else if (rawName.equals("address_direction")) {
+                                curSegmentAddress.addressDirection=content;
+                        } else if (rawName.equals("city")) {
+                                curSegmentAddress.city=content;
+                        } else if (rawName.equals("state")) {
+                                curSegmentAddress.state=content;
+                        } else if (rawName.equals("zip")) {
+                                curSegmentAddress.zip=content;
+                        }
                 }
                 if (VipContentHandler.numCheckTypes.contains(rawNameChk)) {
                         if (rawName.equals("end_house_number")) {
@@ -131,6 +208,9 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                         if (rawName.equals("start_house_number")) {
                                 try {
                                         startnumHold = Long.parseLong(content);
+                                        if (curSegmentAddress!=null) {
+                                                curSegmentAddress.houseNumber=(startnumHold==0 ? 1 : startnumHold) + "";
+                                        }
                                 } catch (Exception e) {
                                         sv.addError("Content of " + rawName + " at line " + locator.getLineNumber() +  " is not a (parseable) number: " + content);
                                 }
@@ -145,6 +225,11 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                 if (rawName.equals("state") && addressMode) {
                         if(content.length() != 2) {
                                 sv.addWarning("Your " + topLevelType +" state at line " + locator.getLineNumber() + " is not two characters long.");
+                        }
+                }
+                if (rawName.equals("vip_object")) {
+                        if (geocodeCount>0) {
+                                sv.addMessage("Geocoding results: " + geocodeSuccess + " successes out of " + geocodeCount + (geocodeCount!=1 ? " attempts" : " attempt") + ".");
                         }
                 }
                 if (topLevelType=="polling_location" & (addressMode || rawName.equals("location_name"))) {
@@ -184,4 +269,5 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                 this.locator = locator;
         }
 
+        
 }
