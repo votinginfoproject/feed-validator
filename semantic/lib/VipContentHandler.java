@@ -125,7 +125,7 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                                                         geocoderResponse = geocoder.geocode(geocoderRequest);
                                                                 } catch (Exception e) {
                                                                         if (geocodeFailure==false) {
-                                                                                sv.addWarning("Geocoding failed, check Internet connection.");
+                                                                                sv.addGeoWarning("Geocoding failed, check Internet connection.");
                                                                                 geocodeFailure=true;
                                                                         }
                                                                 }
@@ -134,11 +134,11 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                                                         
                                                                         //System.out.println("Addr: " + addr);
                                                                         if (geocoderResults.isEmpty()) {
-                                                                                sv.addWarning("No geocode results for address (line " + locator.getLineNumber() + "): " + addr);
+                                                                                sv.addGeoWarning("No geocode results for address (line " + locator.getLineNumber() + "): " + addr);
                                                                         } else {
                                                                                 GeocoderResult geocoderResult = (GeocoderResult)geocoderResults.get(0);
                                                                                 if(geocoderResult.isPartialMatch()) {
-                                                                                        sv.addWarning("Incomplete geocode for (line " + locator.getLineNumber() + "): " + addr);
+                                                                                        sv.addGeoWarning("Incomplete geocode for (line " + locator.getLineNumber() + "): " + addr);
                                                                                 } else {
                                                                                         geocodeSuccess++;
                                                                                 }
@@ -219,7 +219,7 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                 }
                 if (rawName.equals("name") && !addressMode && topLevelType=="polling_location") {
                         if(content.length() > 0) {
-                                sv.addWarning("You have a deprecated <precinct>.<name> element in your feed.");
+                                sv.addWarning("You have a deprecated <polling_location>.<name> element in your feed at line" + locator.getLineNumber());
                         }
                 }
                 if (rawName.equals("state") && addressMode) {
