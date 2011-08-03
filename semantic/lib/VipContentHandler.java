@@ -134,12 +134,23 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                                                         
                                                                         //System.out.println("Addr: " + addr);
                                                                         if (geocoderResults.isEmpty()) {
-                                                                                sv.addGeoWarning("No geocode results for address (line " + locator.getLineNumber() + "): " + addr);
+                                                                                sv.addGeoWarning("No geocode results (status of " + geocoderResponse.getStatus().value() +") for address (line " + locator.getLineNumber() + "): " + addr);
+                                                                                String notAddrFaultStatuses="|OVER_QUERY_LIMIT|REQUEST_DENIED|UNKNOWN_ERROR|";
+                                                                                if (notAddrFaultStatuses.indexOf(geocoderResponse.getStatus().value())>=0) geocodeCount--;
                                                                         } else {
                                                                                 GeocoderResult geocoderResult = (GeocoderResult)geocoderResults.get(0);
-                                                                                GeocoderGeometry geocoderGeometry = geocoderResult.getGeometry();
-                                                                                GeocoderLocationType geocoderLocationType = geocoderGeometry.getLocationType();
-                                                                                if(geocoderLocationType.value().equals("APPROXIMATE")) {
+                                                                                List<GeocoderAddressComponent> addressComponents = geocoderResult.getAddressComponents();
+                                                                                boolean hasRoute=false;
+                                                                                for(int i=0; i<addressComponents.size() && !hasRoute; i++) {
+                                                                                        GeocoderAddressComponent addressComponent=(GeocoderAddressComponent)addressComponents.get(i);
+                                                                                        List<String> componentTypes = addressComponent.getTypes();
+                                                                                        for(int j=0;j<componentTypes.size();j++) {
+                                                                                                if (((String)componentTypes.get(j)).equals("route")) {
+                                                                                                        hasRoute=true;
+                                                                                                }
+                                                                                        }
+                                                                                }
+                                                                                if(!hasRoute) {
                                                                                         sv.addGeoWarning("Incomplete geocode for (line " + locator.getLineNumber() + "): " + addr);
                                                                                 } else {
                                                                                         geocodeSuccess++;
