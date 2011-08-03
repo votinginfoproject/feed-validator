@@ -19,11 +19,11 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
         private long startnumHold;
         private boolean getContent=false;
         
-        private static String topTypes = "|street_segment|precinct|precinct_split|contest|ballot|candidate|electoral_district|" + 
+        private static String topTypes = "|street_segment|precinct|precinct_split|contest|ballot|candidate|electoral_district|" + "ballot_line_result|contest_result|" +
         "polling_location|early_vote_site|election_administration|election_official" + "|locality|state|" + "source|election|" + "ballot|candidate|referendum|ballot_response|custom_ballot|";
         private static String allTypes = VipContentHandler.topTypes + "precinct_id|precinct_split_id|electoral_district_id|" + 
                 "polling_location_id|early_vote_site_id|election_administration_id|eo_id|ovc_id|" + "locality_id|state_id|" + "feed_contact_id|" +
-                "ballot_id|candidate_id|referendum_id|ballot_response_id|custom_ballot_id|";
+                "ballot_id|candidate_id|referendum_id|ballot_response_id|custom_ballot_id|jurisdiction_id|contest_id|";
         private static String numCheckTypes="|start_house_number|end_house_number|";
         private static String addressTypes = "|physical_address|mailing_address|address|non_house_address|filed_mailing_address|";
                 
@@ -43,19 +43,28 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                 if (VipContentHandler.topTypes.contains(rawNameChk)) {
                                         topLevelType = rawName;
                                         //System.out.println("Top level is: " + topLevelType);
-        
-                                        String attrName = atts.getQName(0);
-                                        if (attrName == "id") {
-                                                Long idLong = new Long(atts.getValue(0));
-                                                topLevelId = idLong;
-                                                //System.out.println("Adding ID " + idLong + " of type " + topLevelType);
-                                                sv.addIdType(idLong, rawName, locator.getLineNumber());
-                                        } else {
-                                                sv.addError("First attribute for " + rawName + " at line " + locator.getLineNumber() + " is " + attrName);
+                                        
+                                        if (atts.getLength()>0) {
+                                                String attrName = atts.getQName(0);
+                                                if (attrName.equals("id")) {
+                                                        Long idLong = new Long(atts.getValue(0));
+                                                        topLevelId = idLong;
+                                                        //System.out.println("Adding ID " + idLong + " of type " + topLevelType);
+                                                        sv.addIdType(idLong, rawName, locator.getLineNumber());
+                                                } else {
+                                                        sv.addError("First attribute for " + rawName + " at line " + locator.getLineNumber() + " is " + attrName);
+                                                }
+                                        } else { //no attributes
+                                                sv.addError("No attributes for " + rawName + " at line " + locator.getLineNumber() + "; you need an id attribute here.");
                                         }
                                 } else { //connector
                                         lowLevelType = rawName;
                                         getContent=true;
+                                        if (topLevelType.equals("ballot") && lowLevelType.equals("candidate_id") && atts.getLength()>0) {
+                                                if(atts.getQName(0).equals("sort_order")) {
+                                                        sv.addWarning("You included a sort_order attribute in ballot.candidate_id, which has been deprecated as of v3.0. Use candidate.sort_order instead; the VIP staff can help with this transition.");
+                                                }
+                                        }
                                 }
                         }
                         if (VipContentHandler.numCheckTypes.contains(rawNameChk)) getContent=true;
@@ -110,7 +119,7 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                 try {
                                         long endnum = Long.parseLong(content);
                                         if (endnum==0) {
-                                                sv.addError("Your " + rawName + " at line " + locator.getLineNumber() + " is 0, which doesn't make sense. To signify the entire street is in this segment, use a very large number like 99999.");
+                                                sv.addWarning("Your " + rawName + " at line " + locator.getLineNumber() + " is 0, which doesn't make sense. To signify the entire street is in this segment, use a very large number like 99999.");
                                         }
                                         if (startnumHold > -1 && endnum<startnumHold) {
                                                 sv.addError("Your " + rawName + " at line " + locator.getLineNumber() + " is less than the corresponding start_house_number of " + startnumHold + ".");
@@ -127,6 +136,11 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                 }
                         }
                         getContent=false;
+                }
+                if (rawName.equals("name") && !addressMode && topLevelType=="polling_location") {
+                        if(content.length() > 0) {
+                                sv.addWarning("You have a deprecated <precinct>.<name> element in your feed.");
+                        }
                 }
                 if (rawName.equals("state") && addressMode) {
                         if(content.length() != 2) {

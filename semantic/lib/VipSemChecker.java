@@ -27,13 +27,15 @@ public class VipSemChecker {
                 Label label2 = new Label("XSD File");
                 Label label3 = new Label("Result:");
                 Label label4 = new Label("(Full file path)");
-                Label label5 = new Label("Last update: October 17, 2010");
+                Label label5 = new Label("Last update: November 17, 2010");
                 tf1 = new TextField(cols);
                 tf2 = new TextField(cols);
                 //tf2.setEditable(false);
                 tf2.setEditable(true);
                 Button b1 = new Button("Open File");
                 c1 = new Choice();
+                c1.add("v3.0");
+                c1.add("v2.3");
                 c1.add("v2.2");
                 c1.add("v2.1");
                 c1.add("v2.0");
