@@ -27,7 +27,7 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
 
         //for geocoding
         final Geocoder geocoder = new Geocoder();
-        final static int geocodeMax=20;
+        final static int geocodeMax=100;
         private int geocodeCount=0;
         private int geocodeSuccess=0;
         private boolean geocodeFailure=false;
