@@ -27,13 +27,18 @@ public class SegmentAddress {
                         zip="";
                 }
                 
-                public String getFullAddress() {
+                public String getLineAddress() {
                         String retv=houseNumberPrefix + houseNumber + (houseNumberSuffix.indexOf('/')>=0 ? " " : "") + houseNumberSuffix;
                         if (streetDirection.length()>0) retv +=  " " + streetDirection;
                         if (streetName.length()>0) retv +=  " " + streetName;
                         if (streetSuffix.length()>0) retv +=  " " + streetSuffix;
                         if (addressDirection.length()>0) retv +=  " " + addressDirection;
                         if (apartment.length()>0) retv +=  " Apt " + apartment;
+                        return retv;
+                }
+                
+                public String getFullAddress() {
+                	String retv = getLineAddress();
                         if (city.length()>0) retv +=  " " + city + ",";
                         if (state.length()>0) retv +=  " " + state;
                         if (zip.length()>0) retv +=  " " + zip;

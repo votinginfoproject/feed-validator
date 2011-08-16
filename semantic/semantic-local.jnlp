@@ -2,7 +2,7 @@
 <!-- JNLP File for VIP File Checker Application -->
 <jnlp
   spec="6.0+"
-  codebase="file://localhost/D:/google/checker/semantic/"
+  codebase="file://localhost/D:/google/tools/semantic/"
   href="semantic-local.jnlp">
   <information>
     <title>VIP Semantic Checker Local</title>

@@ -10,7 +10,7 @@ public class VipSemChecker {
         private static TextField tf1;
         private static TextField tf2;
         private static TextArea ta1;
-        private static Choice c1;
+        private static Choice c1, choiceGC;
         private static FileContents localXMLFC = null;
         private static JFrame frame;
 
@@ -28,6 +28,11 @@ public class VipSemChecker {
                 Label label3 = new Label("Result:");
                 Label label4 = new Label("(Full file path)");
                 Label label5 = new Label("Last update: August 3, 2011");
+                Label labelGC = new Label("Geocoder: ");
+                choiceGC = new Choice();
+                choiceGC.add("Google");
+                choiceGC.add("Bing");
+                choiceGC.add("None");
                 tf1 = new TextField(cols);
                 tf2 = new TextField(cols);
                 //tf2.setEditable(false);
@@ -63,10 +68,10 @@ public class VipSemChecker {
                 layout.putConstraint(SpringLayout.NORTH, tf1, yPadInt,
                         SpringLayout.NORTH, contentPane);
 
-                layout.putConstraint(SpringLayout.WEST, b1, xPadInt,
+                /*layout.putConstraint(SpringLayout.WEST, b1, xPadInt,
                         SpringLayout.EAST, tf1);
                 layout.putConstraint(SpringLayout.NORTH, b1, yPadInt,
-                        SpringLayout.NORTH, contentPane);
+                        SpringLayout.NORTH, contentPane);*/
                 layout.putConstraint(SpringLayout.WEST, label4, xPadInt,
                         SpringLayout.EAST, tf1);
                 layout.putConstraint(SpringLayout.NORTH, label4, yPadInt,
@@ -103,7 +108,18 @@ public class VipSemChecker {
                         SpringLayout.EAST, label2);
                 layout.putConstraint(SpringLayout.NORTH, ta1, yPadInt,
                         SpringLayout.SOUTH, b3);
+                
+                //geo
+                layout.putConstraint(SpringLayout.WEST, labelGC, xPadInt*2,
+                        SpringLayout.EAST, b3);
+                layout.putConstraint(SpringLayout.NORTH, labelGC, yPadInt,
+                        SpringLayout.SOUTH, tf2);
+                layout.putConstraint(SpringLayout.WEST, choiceGC, xPadInt/4,
+                        SpringLayout.EAST, labelGC);
+                layout.putConstraint(SpringLayout.NORTH, choiceGC, yPadInt,
+                        SpringLayout.SOUTH, tf2);
 
+                        
                 layout.putConstraint(SpringLayout.NORTH, label5, yPadInt,
                         SpringLayout.SOUTH, ta1);
 
@@ -117,7 +133,10 @@ public class VipSemChecker {
                 contentPane.add(label3);
                 contentPane.add(ta1);
                 contentPane.add(b3);
+                contentPane.add(labelGC);
+                contentPane.add(choiceGC);
                 contentPane.add(label5);
+
 
 
                 Spring maxHeightSpring = Spring.constant(0);
@@ -213,6 +232,7 @@ public class VipSemChecker {
                 }
 
                 if (go) {
+                        sv.setGeocoderType(choiceGC.getSelectedItem());
                         ta1.setText(
                                 "Ready for syntactic and semantic validation..." +
                                 "\n");

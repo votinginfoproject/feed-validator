@@ -5,9 +5,21 @@ import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import com.google.code.geocoder.*;
 import com.google.code.geocoder.model.*;
-import java.io.Serializable;
+import org.votinginfoproject.msgeocoder.*;
+import java.io.*;
+import java.net.URLConnection;
+import java.net.URI;
 import java.util.List;
 import java.util.Random;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.FieldNamingPolicy;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpConnectionManager;
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.methods.GetMethod;
+
 
 //from: http://java.sun.com/developer/Books/xmljava/ch03.pdf
 class VipContentHandler implements org.xml.sax.ContentHandler {
@@ -115,49 +127,87 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                         if (rawName.equals("street_segment")) {
                                                 
                                                 if (curSegmentAddress!=null) {
-                                                        if (!geocodeFailure && (geocodeCount<geocodeMax) && (randomGen.nextDouble()<0.05) && !(curSegmentAddress.streetName.equals("*"))) {
-                                                                //geocode test
+                                                        if (!geocodeFailure && (geocodeCount<geocodeMax) && !(sv.getGeocoderType().equals("None")) && 
+                                                                (randomGen.nextDouble()<0.05) && !(curSegmentAddress.streetName.equals("*"))) {
                                                                 String addr = curSegmentAddress.getFullAddress();
-                                                                GeocoderRequest geocoderRequest = null;
-                                                                GeocodeResponse geocoderResponse = null;
-                                                                try {
-                                                                        geocoderRequest = new GeocoderRequestBuilder().setAddress(addr).setLanguage("en").getGeocoderRequest();
-                                                                        geocoderResponse = geocoder.geocode(geocoderRequest);
-                                                                } catch (Exception e) {
-                                                                        if (geocodeFailure==false) {
-                                                                                sv.addGeoWarning("Geocoding failed, check Internet connection.");
-                                                                                geocodeFailure=true;
+                                                                if (sv.getGeocoderType().equals("Google")) {
+                                                                        //geocode test
+                                                                        GeocoderRequest geocoderRequest = null;
+                                                                        GeocodeResponse geocoderResponse = null;
+                                                                        try {
+                                                                                geocoderRequest = new GeocoderRequestBuilder().setAddress(addr).setLanguage("en").getGeocoderRequest();
+                                                                                geocoderResponse = geocoder.geocode(geocoderRequest);
+                                                                        } catch (Exception e) {
+                                                                                if (geocodeFailure==false) {
+                                                                                        sv.addGeoWarning("Geocoding failed, check Internet connection.");
+                                                                                        geocodeFailure=true;
+                                                                                }
                                                                         }
-                                                                }
-                                                                if (geocoderResponse!=null) {
-                                                                        List<GeocoderResult> geocoderResults = geocoderResponse.getResults();
-                                                                        
-                                                                        //System.out.println("Addr: " + addr);
-                                                                        if (geocoderResults.isEmpty()) {
-                                                                                sv.addGeoWarning("No geocode results (status of " + geocoderResponse.getStatus().value() +") for address (line " + locator.getLineNumber() + "): " + addr);
-                                                                                String notAddrFaultStatuses="|OVER_QUERY_LIMIT|REQUEST_DENIED|UNKNOWN_ERROR|";
-                                                                                if (notAddrFaultStatuses.indexOf(geocoderResponse.getStatus().value())>=0) geocodeCount--;
-                                                                        } else {
-                                                                                GeocoderResult geocoderResult = (GeocoderResult)geocoderResults.get(0);
-                                                                                List<GeocoderAddressComponent> addressComponents = geocoderResult.getAddressComponents();
-                                                                                boolean hasRoute=false;
-                                                                                for(int i=0; i<addressComponents.size() && !hasRoute; i++) {
-                                                                                        GeocoderAddressComponent addressComponent=(GeocoderAddressComponent)addressComponents.get(i);
-                                                                                        List<String> componentTypes = addressComponent.getTypes();
-                                                                                        for(int j=0;j<componentTypes.size();j++) {
-                                                                                                if (((String)componentTypes.get(j)).equals("route")) {
-                                                                                                        hasRoute=true;
+                                                                        if (geocoderResponse!=null) {
+                                                                                List<GeocoderResult> geocoderResults = geocoderResponse.getResults();
+                                                                                
+                                                                                //System.out.println("Addr: " + addr);
+                                                                                if (geocoderResults.isEmpty()) {
+                                                                                        sv.addGeoWarning("No geocode results (status of " + geocoderResponse.getStatus().value() +") for address (line " + locator.getLineNumber() + "): " + addr);
+                                                                                        String notAddrFaultStatuses="|OVER_QUERY_LIMIT|REQUEST_DENIED|UNKNOWN_ERROR|";
+                                                                                        if (notAddrFaultStatuses.indexOf(geocoderResponse.getStatus().value())>=0) geocodeCount--;
+                                                                                } else {
+                                                                                        GeocoderResult geocoderResult = (GeocoderResult)geocoderResults.get(0);
+                                                                                        List<GeocoderAddressComponent> addressComponents = geocoderResult.getAddressComponents();
+                                                                                        boolean hasRoute=false;
+                                                                                        for(int i=0; i<addressComponents.size() && !hasRoute; i++) {
+                                                                                                GeocoderAddressComponent addressComponent=(GeocoderAddressComponent)addressComponents.get(i);
+                                                                                                List<String> componentTypes = addressComponent.getTypes();
+                                                                                                for(int j=0;j<componentTypes.size();j++) {
+                                                                                                        if (((String)componentTypes.get(j)).equals("route")) {
+                                                                                                                hasRoute=true;
+                                                                                                        }
                                                                                                 }
                                                                                         }
+                                                                                        if(!hasRoute) {
+                                                                                                sv.addGeoWarning("Incomplete geocode for (line " + locator.getLineNumber() + "): " + addr);
+                                                                                        } else {
+                                                                                                geocodeSuccess++;
+                                                                                        }
                                                                                 }
-                                                                                if(!hasRoute) {
-                                                                                        sv.addGeoWarning("Incomplete geocode for (line " + locator.getLineNumber() + "): " + addr);
-                                                                                } else {
-                                                                                        geocodeSuccess++;
-                                                                                }
+                                                                                geocodeCount++;
                                                                         }
+                                                                } else if (sv.getGeocoderType().equals("Bing")) {
+                                                                        MSGeocoderResponse msgr = bingGeocode();
+                                                                        if (msgr==null) {
+                                                                                sv.addGeoWarning("Geocoding failed (no response object), check Internet connection.");
+                                                                                geocodeFailure=true;
+                                                                        } else if (msgr.getStatusDescription()==null) {
+                                                                                sv.addGeoWarning("Geocoding failed because of an odd response from Bing.");
+                                                                                geocodeFailure=true;
+                                                                        } else if (!msgr.getStatusDescription().equals("OK")) {
+                                                                                sv.addGeoWarning("Geocoding Error: failure status is " + msgr.getStatusDescription());
+                                                                                geocodeFailure=true;
+                                                                        } else {
+                                                                                geocodeCount++;
+                                                                                List<MSGeocoderResults> resourceSets = msgr.getResourceSets();
+                                                                                if (resourceSets==null || resourceSets.size()==0) {
+                                                                                        sv.addGeoWarning("No geocode results (status of " + msgr.getStatusDescription() + ") for address (line " + locator.getLineNumber() + "): " + addr);
+                                                                                } else {
+                                                                                        boolean hasRoute=false;
+                                                                                        for(int i = 0; i<resourceSets.size(); i++) {
+                                                                                                MSGeocoderResults resourceSet = resourceSets.get(i);
+                                                                                                List<MSGeocoderResult> results = resourceSet.getResources();
+                                                                                                for(int j = 0; j<results.size(); j++) {
+                                                                                                        MSGeocoderResult result = results.get(j);
+                                                                                                        if (result.getEntityType().equals("Address") || result.getEntityType().equals("RoadBlock")) {
+                                                                                                                hasRoute=true;
+                                                                                                        }
+                                                                                                }
+                                                                                        }
+                                                                                        if(!hasRoute) {
+                                                                                                sv.addGeoWarning("Incomplete geocode for (line " + locator.getLineNumber() + "): " + addr);
+                                                                                        } else {
+                                                                                                geocodeSuccess++;
+                                                                                        }
+                                                                                }
+                                                                       }
                                                                 }
-                                                                geocodeCount++;
                                                         }
                                                         curSegmentAddress=null;
                                                 }
@@ -280,6 +330,36 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
         public void setDocumentLocator(Locator locator) {
                 // We save this for later use if desired.
                 this.locator = locator;
+        }
+        
+        private MSGeocoderResponse bingGeocode() {
+                String url="//dev.virtualearth.net/REST/v1/Locations?" + "CountryRegion=US" + "&adminDistrict=" + curSegmentAddress.state + "&locality=" + curSegmentAddress.city
+                         + "&postalCode=" + curSegmentAddress.zip + "&addressLine=" + curSegmentAddress.getLineAddress() + "&o=json&key=Aoxsm2ZLxChtNPudwVL2gCbIW4vlMmct87KIuYXECF4dkJnBBG3CPzuZ3u53e81-";
+                         
+                HttpClient httpClient = new HttpClient(new MultiThreadedHttpConnectionManager());
+                GetMethod getMethod=null;
+                try {
+                        URI uri = new URI("http",url,null);
+                        getMethod = new GetMethod(uri.toString());
+                        Gson gson = new Gson();
+                        httpClient.executeMethod(getMethod);
+                        final Reader reader = new InputStreamReader(getMethod.getResponseBodyAsStream(), getMethod.getResponseCharSet());
+                        MSGeocoderResponse msgr =null;
+                        try {
+                                msgr = gson.fromJson(reader, MSGeocoderResponse.class);
+                        } catch (Exception e) {
+                                System.out.println("JSON Error, contact VIP staff to fix this error for address: " + curSegmentAddress.getFullAddress());
+                                System.out.println(e.getMessage());
+                                e.printStackTrace();
+                        }
+                        return msgr;
+                } catch (Exception e) {
+                        System.out.println(e.getMessage());
+                        e.printStackTrace();
+                } finally {
+                        getMethod.releaseConnection();
+                }               
+                return null;       
         }
 
         
