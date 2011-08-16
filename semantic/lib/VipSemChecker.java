@@ -27,7 +27,7 @@ public class VipSemChecker {
                 Label label2 = new Label("XSD File");
                 Label label3 = new Label("Result:");
                 Label label4 = new Label("(Full file path)");
-                Label label5 = new Label("Last update: August 3, 2011");
+                Label label5 = new Label("Last update: August 16, 2011");
                 Label labelGC = new Label("Geocoder: ");
                 choiceGC = new Choice();
                 choiceGC.add("Google");
