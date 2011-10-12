@@ -148,7 +148,11 @@ class VipContentHandler implements org.xml.sax.ContentHandler {
                                                                                 
                                                                                 //System.out.println("Addr: " + addr);
                                                                                 if (geocoderResults.isEmpty()) {
-                                                                                        sv.addGeoWarning("No geocode results (status of " + geocoderResponse.getStatus().value() +") for address (line " + locator.getLineNumber() + "): " + addr);
+                                                                                        String noWarningStatuses="|OVER_QUERY_LIMIT|";
+                                                                                        //don't issue warning for over query limit
+                                                                                        if (noWarningStatuses.indexOf(geocoderResponse.getStatus().value())<0) {
+                                                                                                sv.addGeoWarning("No geocode results (status of " + geocoderResponse.getStatus().value() +") for address (line " + locator.getLineNumber() + "): " + addr);
+                                                                                        }
                                                                                         String notAddrFaultStatuses="|OVER_QUERY_LIMIT|REQUEST_DENIED|UNKNOWN_ERROR|";
                                                                                         if (notAddrFaultStatuses.indexOf(geocoderResponse.getStatus().value())>=0) geocodeCount--;
                                                                                 } else {
